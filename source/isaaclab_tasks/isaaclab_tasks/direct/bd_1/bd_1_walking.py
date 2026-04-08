@@ -13,87 +13,25 @@ from isaaclab.sensors import Camera, CameraCfg, TiledCamera, TiledCameraCfg
 from isaaclab.utils.math import quat_from_euler_xyz
 import matplotlib.pyplot as plt
 
+##
+# Pre-defined configs
+##
+from isaaclab_assets.robots.bd_1 import BD_1_CFG  # isort: skip
+
 def get_quaternion_tuple_from_xyz(x, y, z):
     quat_tensor = quat_from_euler_xyz(torch.tensor([x]), torch.tensor([y]), torch.tensor([z])).flatten()
     return (quat_tensor[0].item(), quat_tensor[1].item(), quat_tensor[2].item(), quat_tensor[3].item())
 
 @configclass
 class BD1WalkingEnvCfg(DirectMARLEnvCfg):
+    # Environment Settings
     decimation = 4
     episode_length_s = 20.0
+    
 
 
     sim: SimulationCfg = SimulationCfg(dt=1/200, render_interval=decimation)
 
-    wall_0 = RigidObjectCfg(
-        prim_path="/World/envs/env_.*/Object0",
-        spawn=sim_utils.CuboidCfg(
-            size=(20, 0.5, 2),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.0, 5.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
-        ),
-    )
-
-    wall_1 = RigidObjectCfg(
-        prim_path="/World/envs/env_.*/Object1",
-        spawn=sim_utils.CuboidCfg(
-            size=(20, 0.5, 2),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.0, -5.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
-        ),
-    )
-
-    wall_2 = RigidObjectCfg(
-        prim_path="/World/envs/env_.*/Object2",
-        spawn=sim_utils.CuboidCfg(
-            size=(0.5, 10, 2),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(10.0, 0.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
-        ),
-    )
-    
-    wall_3 = RigidObjectCfg(
-        prim_path="/World/envs/env_.*/Object3",
-        spawn=sim_utils.CuboidCfg(
-            size=(0.5, 10, 2),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(-10.0, 0.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
-        ),
-    )
-
-    block = RigidObjectCfg(
-        prim_path="/World/envs/env_.*/Block_.",
-        spawn=sim_utils.CuboidCfg(
-            size=(0.5, 10, 2),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(10.0, 0.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
-        ),
-    )
 
     env_spacing = 30.0
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=env_spacing, replicate_physics=True)
@@ -199,3 +137,93 @@ class BD1WalkingEnv(DirectMARLEnv):
         for key, value in rewards.items():
             self._episode_sums[key] += value
         return total_reward
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # wall_0 = RigidObjectCfg(
+    #     prim_path="/World/envs/env_.*/Object0",
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(20, 0.5, 2),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=(0.0, 5.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
+    #     ),
+    # )
+
+    # wall_1 = RigidObjectCfg(
+    #     prim_path="/World/envs/env_.*/Object1",
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(20, 0.5, 2),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=(0.0, -5.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
+    #     ),
+    # )
+
+    # wall_2 = RigidObjectCfg(
+    #     prim_path="/World/envs/env_.*/Object2",
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(0.5, 10, 2),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=(10.0, 0.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
+    #     ),
+    # )
+    
+    # wall_3 = RigidObjectCfg(
+    #     prim_path="/World/envs/env_.*/Object3",
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(0.5, 10, 2),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=(-10.0, 0.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
+    #     ),
+    # )
+
+    # block = RigidObjectCfg(
+    #     prim_path="/World/envs/env_.*/Block_.",
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(0.5, 10, 2),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=(10.0, 0.0, 1), rot=(1.0, 0.0, 0.0, 0.0) 
+    #     ),
+    # )
