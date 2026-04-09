@@ -54,7 +54,7 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
     # env
     episode_length_s = 10.0
     decimation = 4
-    action_scale = 0.5
+    action_scale = 0.1
     action_space = 6
     observation_space = 48
     state_space = 0
@@ -86,7 +86,7 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
     )
 
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=4.0, replicate_physics=True) # num_envs use to be 4096
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=10.0, replicate_physics=True) # num_envs use to be 4096
 
     # events
     events: EventCfg = EventCfg()
@@ -212,6 +212,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
             ],
             dim=-1, 
         )
+        obs = torch.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
         observations = {"policy": obs}
         return observations
 
@@ -219,9 +220,11 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         # linear velocity tracking
         lin_vel_error = torch.sum(torch.square(self._commands[:, :2] - self._robot.data.root_lin_vel_b[:, :2]), dim=1)
         lin_vel_error_mapped = torch.exp(-lin_vel_error / 0.25)
+        lin_vel_error_mapped = torch.nan_to_num(lin_vel_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
         # yaw rate tracking
         yaw_rate_error = torch.square(self._commands[:, 2] - self._robot.data.root_ang_vel_b[:, 2])
         yaw_rate_error_mapped = torch.exp(-yaw_rate_error / 0.25)
+        yaw_rate_error_mapped = torch.nan_to_num(yaw_rate_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
         # # z velocity tracking
         # z_vel_error = torch.square(self._robot.data.root_lin_vel_b[:, 2])
         # # angular velocity x/y
@@ -271,6 +274,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         # died = torch.any(torch.max(torch.norm(net_contact_forces[:, :, self._base_id], dim=-1), dim=1)[0] > 1.0, dim=1)
         # died = torch.any(self._robot.data.root_pos_w[:, 2] < 0.1, dim=1)
         died = self._robot.data.root_pos_w[:, 2] < 0.15
+        died = self._robot.data.root_pos_w[:, 2] > 5
         # died = self._robot.data.body_pos_w[:, -1, -1] < 0.15
         return died, time_out
 
@@ -285,7 +289,10 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         self._actions[env_ids] = 0.0
         self._previous_actions[env_ids] = 0.0
         # Sample new commands
-        self._commands[env_ids] = torch.zeros_like(self._commands[env_ids]).uniform_(-1.0, 1.0)
+        self._commands[env_ids, 0] = torch.zeros_like(self._commands[env_ids, 0]).uniform_(0.0, 1.0)
+        self._commands[env_ids, 1] = torch.zeros_like(self._commands[env_ids, 1])
+        self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2]).uniform_(-1.0, 1.0)
+
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
         joint_vel = self._robot.data.default_joint_vel[env_ids]

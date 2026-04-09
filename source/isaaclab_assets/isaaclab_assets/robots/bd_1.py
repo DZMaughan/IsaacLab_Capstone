@@ -17,7 +17,7 @@ BD_1_CFG = ArticulationCfg(
         scale=(0.1, 0.1, 0.1),
         # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
     ),
-    init_state=ArticulationCfg.InitialStateCfg(pos=(0.0, 0.0, .3),
+    init_state=ArticulationCfg.InitialStateCfg(pos=(0.0, 0.0, 1.0),
         #                                        joint_pos={
         #     ".*Hip": 0.0,
         #     ".*Knee": 0.0,
