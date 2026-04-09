@@ -54,7 +54,7 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
     # env
     episode_length_s = 10.0
     decimation = 4
-    action_scale = 0.1
+    action_scale = 0.5
     action_space = 6
     observation_space = 48
     state_space = 0
@@ -158,7 +158,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
                 # "ang_vel_xy_l2",
                 # "dof_torques_l2",
                 # "dof_acc_l2",
-                # "action_rate_l2",
+                "action_rate_l2",
                 # "feet_air_time",
                 # "undesired_contacts",
                 # "flat_orientation_l2",
@@ -213,6 +213,8 @@ class BD1WalkingFixedEnv(DirectRLEnv):
             dim=-1, 
         )
         obs = torch.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
+        clamp_value = 1e5
+        obs = obs.clamp(-clamp_value, clamp_value)
         observations = {"policy": obs}
         return observations
 
@@ -234,7 +236,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         # # joint acceleration
         # joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
         # # action rate
-        # action_rate = torch.sum(torch.square(self._actions - self._previous_actions), dim=1)
+        action_rate = torch.sum(torch.square(self._actions - self._previous_actions), dim=1)
         # # feet air time
         # first_contact = self._contact_sensor.compute_first_contact(self.step_dt)[:, self._feet_ids]
         # last_air_time = self._contact_sensor.data.last_air_time[:, self._feet_ids]
@@ -257,7 +259,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
             # "ang_vel_xy_l2": ang_vel_error * self.cfg.ang_vel_reward_scale * self.step_dt,
             # "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
             # "dof_acc_l2": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
-            # "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,
+            "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,
             # "feet_air_time": air_time * self.cfg.feet_air_time_reward_scale * self.step_dt,
             # "undesired_contacts": contacts * self.cfg.undesired_contact_reward_scale * self.step_dt,
             # "flat_orientation_l2": flat_orientation * self.cfg.flat_orientation_reward_scale * self.step_dt,
