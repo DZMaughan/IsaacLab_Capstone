@@ -9,11 +9,11 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 
 
 @configclass
-class AnymalCFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class BD1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 500
     save_interval = 50
-    experiment_name = "anymal_c_flat_direct"
+    experiment_name = "bd_1_flat_direct"
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
         actor_obs_normalization=False,
@@ -39,11 +39,11 @@ class AnymalCFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 
 
 @configclass
-class AnymalCRoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class BD1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 1500
     save_interval = 50
-    experiment_name = "anymal_c_rough_direct"
+    experiment_name = "bd_1_rough_direct"
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
         actor_obs_normalization=False,

@@ -12,6 +12,7 @@ import gymnasium as gym
 from . import agents
 
 from .bd_1_walking import BD1WalkingEnv, BD1WalkingEnvCfg
+from .bd_1_walkingfixed import BD1WalkingFixedEnv, BD1WalkingFixedEnvCfg
 
 ##
 # Register Gym Environments
@@ -24,7 +25,20 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": BD1WalkingEnvCfg,
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_flat_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:AnymalCSoccerFlatPPORunnerCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:BD1FlatPPORunnerCfg",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_flat_ppo_cfg.yaml",
+        "harl_happo_cfg_entry_point": f"{agents.__name__}:harl_happo_cfg.yaml",
+    },
+)
+
+gym.register(
+    id="BD-1-WalkingFixed-v0",
+    entry_point=BD1WalkingFixedEnv,
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": BD1WalkingFixedEnvCfg,
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_flat_ppo_cfg.yaml",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:BD1FlatPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_flat_ppo_cfg.yaml",
         "harl_happo_cfg_entry_point": f"{agents.__name__}:harl_happo_cfg.yaml",
     },
