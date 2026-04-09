@@ -21,6 +21,7 @@ from isaaclab.utils import configclass
 # Pre-defined configs
 ##
 from isaaclab_assets.robots.bd_1 import BD_1_CFG  # isort: skip
+from isaaclab_assets.robots.minitank import MINITANK_CFG  # isort: skip
 
 @configclass
 class EventCfg:
@@ -42,7 +43,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+            "asset_cfg": SceneEntityCfg("robot", body_names="mesh_"),
             "mass_distribution_params": (-5.0, 5.0),
             "operation": "add",
         },
@@ -51,7 +52,7 @@ class EventCfg:
 @configclass
 class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 20.0
+    episode_length_s = 10.0
     decimation = 4
     action_scale = 0.5
     action_space = 6
@@ -92,6 +93,7 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
 
     # robot
     robot: ArticulationCfg = BD_1_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    # robot: ArticulationCfg = MINITANK_CFG.replace(prim_path="/World/envs/env_.*/Robot")
     # contact_sensor: ContactSensorCfg = ContactSensorCfg(
     #     prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
     # )
@@ -193,7 +195,6 @@ class BD1WalkingFixedEnv(DirectRLEnv):
 
     def _get_observations(self) -> dict:
         self._previous_actions = self._actions.clone()
-        height_data = None
 
         obs = torch.cat(
             [
@@ -205,12 +206,11 @@ class BD1WalkingFixedEnv(DirectRLEnv):
                     self._commands,
                     self._robot.data.joint_pos - self._robot.data.default_joint_pos,
                     self._robot.data.joint_vel,
-                    height_data,
                     self._actions,
                 )
                 if tensor is not None
             ],
-            dim=-1,
+            dim=-1, 
         )
         observations = {"policy": obs}
         return observations
@@ -269,7 +269,9 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         # net_contact_forces = self._contact_sensor.data.net_forces_w_history
         # died = torch.any(torch.max(torch.norm(net_contact_forces[:, :, self._base_id], dim=-1), dim=1)[0] > 1.0, dim=1)
-        died = torch.any(self._robot.data.root_pos_w[:, 2] < 0.1, dim=1)
+        # died = torch.any(self._robot.data.root_pos_w[:, 2] < 0.1, dim=1)
+        died = self._robot.data.root_pos_w[:, 2] < 0.15
+        # died = self._robot.data.body_pos_w[:, -1, -1] < 0.15
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
