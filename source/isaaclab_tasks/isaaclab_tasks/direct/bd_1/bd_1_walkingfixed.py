@@ -20,7 +20,7 @@ from isaaclab.utils import configclass
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.bd_1 import BD_1_CFG  # isort: skip
+from isaaclab_assets.robots.bd_1_simple import BD_1_CFG  # isort: skip
 from isaaclab_assets.robots.minitank import MINITANK_CFG  # isort: skip
 
 @configclass
@@ -43,7 +43,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="mesh_"),
+            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
             "mass_distribution_params": (-5.0, 5.0),
             "operation": "add",
         },
@@ -190,7 +190,12 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         self._actions = actions.clone()
         self._processed_actions = self.cfg.action_scale * self._actions + self._robot.data.default_joint_pos
 
-    def _apply_action(self):
+    def _apply_action(self):    
+        # test_actions = torch.tensor([[0.0, 0.0, 1.0, 1.0, 0.0, 0.0]], device=self.device)
+        # if self.episode_length_buf[0] < 200:
+        #     test_actions = torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], device=self.device)    
+
+        
         self._robot.set_joint_position_target(self._processed_actions)
 
     def _get_observations(self) -> dict:
@@ -237,6 +242,8 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         # joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
         # # action rate
         action_rate = torch.sum(torch.square(self._actions - self._previous_actions), dim=1)
+        action_rate_reward = action_rate * self.cfg.action_rate_reward_scale * self.step_dt
+        action_rate_reward[action_rate_reward < -.1] = -.1  # clip action rate reward to prevent large negative rewards from sim instability
         # # feet air time
         # first_contact = self._contact_sensor.compute_first_contact(self.step_dt)[:, self._feet_ids]
         # last_air_time = self._contact_sensor.data.last_air_time[:, self._feet_ids]
@@ -259,7 +266,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
             # "ang_vel_xy_l2": ang_vel_error * self.cfg.ang_vel_reward_scale * self.step_dt,
             # "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
             # "dof_acc_l2": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
-            "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,
+            "action_rate_l2": action_rate_reward,
             # "feet_air_time": air_time * self.cfg.feet_air_time_reward_scale * self.step_dt,
             # "undesired_contacts": contacts * self.cfg.undesired_contact_reward_scale * self.step_dt,
             # "flat_orientation_l2": flat_orientation * self.cfg.flat_orientation_reward_scale * self.step_dt,
@@ -275,8 +282,9 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         # net_contact_forces = self._contact_sensor.data.net_forces_w_history
         # died = torch.any(torch.max(torch.norm(net_contact_forces[:, :, self._base_id], dim=-1), dim=1)[0] > 1.0, dim=1)
         # died = torch.any(self._robot.data.root_pos_w[:, 2] < 0.1, dim=1)
-        died = self._robot.data.root_pos_w[:, 2] < 0.15
-        died = self._robot.data.root_pos_w[:, 2] > 5
+        died = self._robot.data.root_pos_w[:, 2] < 1.5
+        died |= self._robot.data.root_pos_w[:, 2] > 10
+        died |= (self._actions - self._previous_actions).sum(dim=1) > 5 # if the action is too large, it's likely the sim has become unstable, so we terminate the episode to reset the sim
         # died = self._robot.data.body_pos_w[:, -1, -1] < 0.15
         return died, time_out
 
