@@ -20,7 +20,7 @@ from isaaclab.utils import configclass
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.bd_1_simple import BD_1_CFG  # isort: skip
+from isaaclab_assets.robots.bd_1 import BD_1_CFG  # isort: skip
 from isaaclab_assets.robots.minitank import MINITANK_CFG  # isort: skip
 
 @configclass
@@ -43,7 +43,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+            "asset_cfg": SceneEntityCfg("robot", body_names="mesh_"),
             "mass_distribution_params": (-5.0, 5.0),
             "operation": "add",
         },
@@ -86,7 +86,7 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
     )
 
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=10.0, replicate_physics=True) # num_envs use to be 4096
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=5.0, replicate_physics=True) # num_envs use to be 4096
 
     # events
     events: EventCfg = EventCfg()
@@ -94,7 +94,7 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
     # robot
     robot: ArticulationCfg = BD_1_CFG.replace(prim_path="/World/envs/env_.*/Robot")
     # robot: ArticulationCfg = MINITANK_CFG.replace(prim_path="/World/envs/env_.*/Robot")
-    # contact_sensor: ContactSensorCfg = ContactSensorCfg(
+    # contact_sensor: ContactSensorCfg = ContactSensorCfg(1)
     #     prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
     # )
 
@@ -226,11 +226,11 @@ class BD1WalkingFixedEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         # linear velocity tracking
         lin_vel_error = torch.sum(torch.square(self._commands[:, :2] - self._robot.data.root_lin_vel_b[:, :2]), dim=1)
-        lin_vel_error_mapped = torch.exp(-lin_vel_error / 0.25)
+        lin_vel_error_mapped = torch.exp(-lin_vel_error / 0.1)
         lin_vel_error_mapped = torch.nan_to_num(lin_vel_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
         # yaw rate tracking
         yaw_rate_error = torch.square(self._commands[:, 2] - self._robot.data.root_ang_vel_b[:, 2])
-        yaw_rate_error_mapped = torch.exp(-yaw_rate_error / 0.25)
+        yaw_rate_error_mapped = torch.exp(-yaw_rate_error / 0.05)
         yaw_rate_error_mapped = torch.nan_to_num(yaw_rate_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
         # # z velocity tracking
         # z_vel_error = torch.square(self._robot.data.root_lin_vel_b[:, 2])
@@ -282,9 +282,10 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         # net_contact_forces = self._contact_sensor.data.net_forces_w_history
         # died = torch.any(torch.max(torch.norm(net_contact_forces[:, :, self._base_id], dim=-1), dim=1)[0] > 1.0, dim=1)
         # died = torch.any(self._robot.data.root_pos_w[:, 2] < 0.1, dim=1)
-        died = self._robot.data.root_pos_w[:, 2] < 1.5
-        died |= self._robot.data.root_pos_w[:, 2] > 10
-        died |= (self._actions - self._previous_actions).sum(dim=1) > 5 # if the action is too large, it's likely the sim has become unstable, so we terminate the episode to reset the sim
+        died = self._robot.data.root_pos_w[:, 2] < 0.1
+        died |= self._robot.data.root_pos_w[:, 2] > 2.0
+        died |= torch.norm(self._robot.data.root_lin_vel_b, dim=1) > 5.0
+        died |= (self._actions - self._previous_actions).sum(dim=1) > 10 # if the action is too large, it's likely the sim has become unstable, so we terminate the episode to reset the sim
         # died = self._robot.data.body_pos_w[:, -1, -1] < 0.15
         return died, time_out
 
@@ -299,9 +300,9 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         self._actions[env_ids] = 0.0
         self._previous_actions[env_ids] = 0.0
         # Sample new commands
-        self._commands[env_ids, 0] = torch.zeros_like(self._commands[env_ids, 0]).uniform_(0.0, 1.0)
-        self._commands[env_ids, 1] = torch.zeros_like(self._commands[env_ids, 1])
-        self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2]).uniform_(-1.0, 1.0)
+        self._commands[env_ids, 0] = torch.zeros_like(self._commands[env_ids, 0])
+        self._commands[env_ids, 1] = torch.zeros_like(self._commands[env_ids, 1]).uniform_(-0.125, 0.0)
+        self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2]).uniform_(-0.125, 0.125)
 
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
