@@ -101,6 +101,7 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
     # reward scales
     lin_vel_reward_scale = 1.0
     yaw_rate_reward_scale = 0.5
+    head_height_reward_scale = 0.1
     z_vel_reward_scale = -2.0
     ang_vel_reward_scale = -0.05
     joint_torque_reward_scale = -2.5e-5
@@ -154,6 +155,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
             for key in [
                 "track_lin_vel_xy_exp",
                 "track_ang_vel_z_exp",
+                "track_head_height_exp",
                 # "lin_vel_z_l2",
                 # "ang_vel_xy_l2",
                 # "dof_torques_l2",
@@ -226,12 +228,16 @@ class BD1WalkingFixedEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         # linear velocity tracking
         lin_vel_error = torch.sum(torch.square(self._commands[:, :2] - self._robot.data.root_lin_vel_b[:, :2]), dim=1)
-        lin_vel_error_mapped = torch.exp(-lin_vel_error / 0.1)
+        lin_vel_error_mapped = torch.exp(-lin_vel_error / 0.25)
         lin_vel_error_mapped = torch.nan_to_num(lin_vel_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
         # yaw rate tracking
         yaw_rate_error = torch.square(self._commands[:, 2] - self._robot.data.root_ang_vel_b[:, 2])
-        yaw_rate_error_mapped = torch.exp(-yaw_rate_error / 0.05)
+        yaw_rate_error_mapped = torch.exp(-yaw_rate_error / 0.25)
         yaw_rate_error_mapped = torch.nan_to_num(yaw_rate_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
+        # Head level tracking
+        head_height = self._robot.data.root_pos_w[:, 2]
+
+        
         # # z velocity tracking
         # z_vel_error = torch.square(self._robot.data.root_lin_vel_b[:, 2])
         # # angular velocity x/y
@@ -262,6 +268,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         rewards = {
             "track_lin_vel_xy_exp": lin_vel_error_mapped * self.cfg.lin_vel_reward_scale * self.step_dt,
             "track_ang_vel_z_exp": yaw_rate_error_mapped * self.cfg.yaw_rate_reward_scale * self.step_dt,
+            "track_head_height_exp": head_height * self.cfg.head_height_reward_scale * self.step_dt,
             # "lin_vel_z_l2": z_vel_error * self.cfg.z_vel_reward_scale * self.step_dt,
             # "ang_vel_xy_l2": ang_vel_error * self.cfg.ang_vel_reward_scale * self.step_dt,
             # "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
@@ -284,6 +291,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         # died = torch.any(self._robot.data.root_pos_w[:, 2] < 0.1, dim=1)
         died = self._robot.data.root_pos_w[:, 2] < 0.1
         died |= self._robot.data.root_pos_w[:, 2] > 2.0
+        # print("Head height:", self._robot.data.root_pos_w[0, 2])
         died |= torch.norm(self._robot.data.root_lin_vel_b, dim=1) > 5.0
         died |= (self._actions - self._previous_actions).sum(dim=1) > 10 # if the action is too large, it's likely the sim has become unstable, so we terminate the episode to reset the sim
         # died = self._robot.data.body_pos_w[:, -1, -1] < 0.15
@@ -301,8 +309,9 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         self._previous_actions[env_ids] = 0.0
         # Sample new commands
         self._commands[env_ids, 0] = torch.zeros_like(self._commands[env_ids, 0])
-        self._commands[env_ids, 1] = torch.zeros_like(self._commands[env_ids, 1]).uniform_(-0.125, 0.0)
-        self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2]).uniform_(-0.125, 0.125)
+        self._commands[env_ids, 1] = torch.zeros_like(self._commands[env_ids, 1]).uniform_(-1.0, 0.0)
+        # self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2])
+        self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2]).uniform_(-1.0, 1.0)
 
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
