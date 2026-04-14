@@ -236,6 +236,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         yaw_rate_error_mapped = torch.nan_to_num(yaw_rate_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
         # Head level tracking
         head_height = self._robot.data.root_pos_w[:, 2]
+        head_height[head_height > 1.0] = -1.0
 
         
         # # z velocity tracking
