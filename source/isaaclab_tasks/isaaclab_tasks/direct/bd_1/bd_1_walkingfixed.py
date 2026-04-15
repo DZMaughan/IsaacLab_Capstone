@@ -93,9 +93,8 @@ class BD1WalkingFixedEnvCfg(DirectRLEnvCfg):
 
     # robot
     robot: ArticulationCfg = BD_1_CFG.replace(prim_path="/World/envs/env_.*/Robot")
-    # robot: ArticulationCfg = MINITANK_CFG.replace(prim_path="/World/envs/env_.*/Robot")
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
+        prim_path="/World/envs/env_.*/Robot/robot/*foot.*", history_length=3, update_period=0.005, track_air_time=True
     )
 
     # reward scales
@@ -158,8 +157,8 @@ class BD1WalkingFixedEnv(DirectRLEnv):
                 "track_head_height_exp",
                 "lin_vel_z_l2",
                 # "ang_vel_xy_l2",
-                # "dof_torques_l2",
-                # "dof_acc_l2",
+                "dof_torques_l2",
+                "dof_acc_l2",
                 "action_rate_l2",
                 # "feet_air_time",
                 # "undesired_contacts",
@@ -167,8 +166,8 @@ class BD1WalkingFixedEnv(DirectRLEnv):
             ]
         }
         # Get specific body indices
-        # self._base_id, _ = self._contact_sensor.find_bodies("base")
-        # self._feet_ids, _ = self._contact_sensor.find_bodies(".*FOOT")
+        # self._base_id, _ = self._contact_sensor.find_bodies("mesh_") # This originally was "base"
+        # self._feet_ids, _ = self._contact_sensor.find_bodies(".*foot") # This originally was ".*FOOT"
         # self._undesired_contact_body_ids, _ = self._contact_sensor.find_bodies(".*THIGH")
 
     def _setup_scene(self):
@@ -236,23 +235,21 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         yaw_rate_error_mapped = torch.nan_to_num(yaw_rate_error_mapped, nan=0.0, posinf=0.0, neginf=0.0)
         # Head level tracking
         head_height = self._robot.data.root_pos_w[:, 2]
-        head_height[head_height > 1.0] = -1.0
-
-        
+        head_height[head_height > 1.0] = -1.0        
         # z velocity tracking
         z_vel_error = torch.square(self._robot.data.root_lin_vel_b[:, 2])
         z_vel_error[z_vel_error > 4.0] = 4.0
         # # angular velocity x/y
         # ang_vel_error = torch.sum(torch.square(self._robot.data.root_ang_vel_b[:, :2]), dim=1)
-        # # joint torques
-        # joint_torques = torch.sum(torch.square(self._robot.data.applied_torque), dim=1)
-        # # joint acceleration
-        # joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
-        # # action rate
+        # joint torques
+        joint_torques = torch.sum(torch.square(self._robot.data.applied_torque), dim=1)
+        # joint acceleration
+        joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
+        # action rate
         action_rate = torch.sum(torch.square(self._actions - self._previous_actions), dim=1)
         action_rate_reward = action_rate * self.cfg.action_rate_reward_scale * self.step_dt
         action_rate_reward[action_rate_reward < -.1] = -.1  # clip action rate reward to prevent large negative rewards from sim instability
-        # # feet air time
+        # feet air time
         # first_contact = self._contact_sensor.compute_first_contact(self.step_dt)[:, self._feet_ids]
         # last_air_time = self._contact_sensor.data.last_air_time[:, self._feet_ids]
         # air_time = torch.sum((last_air_time - 0.5) * first_contact, dim=1) * (
@@ -273,8 +270,8 @@ class BD1WalkingFixedEnv(DirectRLEnv):
             "track_head_height_exp": head_height * self.cfg.head_height_reward_scale * self.step_dt,
             "lin_vel_z_l2": z_vel_error * self.cfg.z_vel_reward_scale * self.step_dt,
             # "ang_vel_xy_l2": ang_vel_error * self.cfg.ang_vel_reward_scale * self.step_dt,
-            # "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
-            # "dof_acc_l2": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
+            "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
+            "dof_acc_l2": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
             "action_rate_l2": action_rate_reward,
             # "feet_air_time": air_time * self.cfg.feet_air_time_reward_scale * self.step_dt,
             # "undesired_contacts": contacts * self.cfg.undesired_contact_reward_scale * self.step_dt,

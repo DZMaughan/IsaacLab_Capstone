@@ -12,8 +12,8 @@ isaaclab_asset_path = Path(
 
 BD_1_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        # usd_path=str(Path(isaaclab_asset_path, "bd_1.usd")),
         usd_path="/home/zacmaughan/IsaacLab_Capstone/source/isaaclab_assets/isaaclab_assets/custom/no_collisions_solidworks_model.usda",
+        activate_contact_sensors=True,
         scale=(0.1, 0.1, 0.1),
         # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
     ),
