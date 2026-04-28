@@ -245,6 +245,7 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         joint_torques = torch.sum(torch.square(self._robot.data.applied_torque), dim=1)
         # joint acceleration
         joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
+        joint_accel[joint_accel > 25.0] = 25.0
         # action rate
         action_rate = torch.sum(torch.square(self._actions - self._previous_actions), dim=1)
         action_rate_reward = action_rate * self.cfg.action_rate_reward_scale * self.step_dt
@@ -309,8 +310,8 @@ class BD1WalkingFixedEnv(DirectRLEnv):
         self._commands[env_ids, 0] = torch.zeros_like(self._commands[env_ids, 0])
         # self._commands[env_ids, 1] = -0.7 *torch.ones_like(self._commands[env_ids, 1])
         self._commands[env_ids, 1] = torch.zeros_like(self._commands[env_ids, 1]).uniform_(-1.0, 0.0)
-        # self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2])
-        self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2]).uniform_(-1.0, 1.0)
+        self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2])
+        # self._commands[env_ids, 2] = torch.zeros_like(self._commands[env_ids, 2]).uniform_(-1.0, 1.0)
 
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
